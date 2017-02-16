@@ -70,6 +70,90 @@ def drawLineGraph(figureText, xValues, yValues, area=3, color='green', alphaValu
     mplLineGraph.scatter(xValues, yValues, s=area, c=color, alpha=alphaValue)
     mplLineGraph.show()
 
+
+def formatDataForMonthlyMinMaxAndAvg(yValues, monthList):   
+    #I need to see what month I am currently looking at and also need to know what the prior month is
+    #this will tell me when the months change.
+    #another thing to think about is the first iteration
+
+    #current and prior month will help me know when the month has changed while I'm iterating through these lists
+    currentMonth = ''
+    priorMonth = ''
+    valueList = []                  #valueList will help me get the min of the month
+    averageValuesList = []
+    maximumValueForMonthList = []
+    minimumValueForMonthList = []
+
+    #TODO: fix/restructure code
+    
+    #okay, so I messed up and acutally wrote the logic for the changing of the months in the wrong place, but im too tired to change it right now
+    #I will take it out of this current location (below this text) and implement it later on after I have gotten the data for the humidity out just
+    #like was done above for the temperature data
+
+    # print(monthList)
+
+    for i in range(0, 8760):
+        humidityValueForCurrentCell = yValues[i]
+
+        #to properly get a minimum for the month I need to know what month I'm looking at so I will do that now
+        currentMonth = monthList[i] #this is the current month in the iteration
+        
+        # if i == 0:
+        #     print('i = ', i, currentMonth)
+        # if i == 8759:
+        #     print('i = ', i, currentMonth)
+
+        #I need to get the MONTHLY min
+        if i == 0 or currentMonth == priorMonth:
+            #if here I know this is the first iteration
+            #OR
+            #if here then this will allow me to continue to build the valueList so that I can eventually get the minimum value for the month (once the month changes)
+            if i == 0: priorMonth = currentMonth    #this only needs to be done during the first iteration
+            if humidityValueForCurrentCell == CELLERRORVALUE:
+                valueList.append(0)     #I could add some logic here to smooth the data
+            else:                
+                valueList.append(humidityValueForCurrentCell)
+
+
+            #also a thing to have to watch out for is if this is the last element in the list
+            #if it is we are done here after adding the minimum value to the minimumValueForMonthList
+            if i == 8759:
+                #this is the last iteration in the loop
+                #I will finish up by getting the last calculation for the final month's data before the loop ends
+                maximumValueForMonth = max(valueList)
+                minimumValueForMonth = min(valueList)
+                maximumValueForMonthList.append(maximumValueForMonth)
+                minimumValueForMonthList.append(minimumValueForMonth)
+                valueList = []      #empty this value since it is no longer needed
+        else:
+            
+            #if here then the month must have changed
+            #I can now get the minimum value for the month
+            maximumValueForMonth = max(valueList)
+            minimumValueForMonth = min(valueList)
+            maximumValueForMonthList.append(maximumValueForMonth)
+            minimumValueForMonthList.append(minimumValueForMonth)
+            valueList = []  #I will empty the list and start the process of getting the minimum value for the next month by adding the first value for the newest month in the iteration
+            valueList.append(humidityValueForCurrentCell)
+
+        #I need to get the MONTHLY max
+
+        #get MONTHLY average
+        #so for each month 
+            #get all of the data and average it out
+            #make sure to watch out for -9999 values (since this is indicates that the value is missing)
+
+        priorMonth = currentMonth   #this will help me know later when the month has changed during the iteration over the list
+
+        #print(minimumValueForMonthList)
+
+    # print(maximumValueForMonthList)
+    # print('\n')
+    # print(minimumValueForMonthList)
+
+    return [maximumValueForMonthList, minimumValueForMonthList, averageValuesList]
+
+
 def getChartSelectionFromUser():
     '''
     scatter chart by hour of the day
@@ -155,11 +239,13 @@ def Program():
     cellList = []   #this will be used later to help get the individual data cells
     #now I will build the list (I keep wanting to say array lol) to hold the hour values that will be used when drawing the graph
     time = []
+    monthList = []  #this will help me in the monthly min, max, and average section of the code
 
     for i in range(0, 8760):
         cellList.append(sanitizedLinesList[i].split(','))
         #this will grab the cell row, then with [1] grab the cell (which has the time value in it) then do a string slice [:2] which makes it where it just keeps the hour and discards the minutes
         time.append(str(cellList[i][1])[:2])
+        monthList.append(cellList[i][0].split('/')[0])    #this grabs the month
 
     #cellList now contains for each element up to and including 8759 a list of the individual cells for that element index
 
@@ -187,93 +273,54 @@ def Program():
         # mplLineGraph.show()
 
 
-        #time is being used as the xAxis labels
-        drawLineGraph('Scatter Chart', time, yValues)
+        # #time is being used as the xAxis labels
+        # drawLineGraph('Scatter Chart', time, yValues)
 
     elif graphSelection == 2:
-        #I need to see what month I am currently looking at and also need to know what the prior month is
-        #this will tell me when the months change.
-        #another thing to think about is the first iteration
-        
-        #current and prior month will help me know when the month has changed while I'm iterating through these lists
-        currentMonth = ''
-        priorMonth = ''
-        valueList = []  #valueList will help me get the min of the month
         for i in range(0, 8760):
-
-
             humidityValueForCurrentCell = float(cellList[i][37])
-            # yValues.append(humidityValueForCurrentCell)
-
-
-
-
-
-
-            #TODO: fix/restructure code
-            
-            #okay, so I messed up and acutally wrote the logic for the changing of the months in the wrong place, but im too tired to change it right now
-            #I will take it out of this current location (below this text) and implement it later on after I have gotten the data for the humidity out just
-            #like was done above for the temperature data
-
-
-
-
-            #to properly get a minimum for the month I need to know what month I'm looking at so I will do that now
-            currentMonth = cellList[i][0].split('/')[0] #this references the first row, first cell and grabs the month with the .split method
-            
-
-            #I need to get the MONTHLY min
-            if i == 0 or currentMonth == priorMonth:
-                #if here I know this is the first iteration
-                #OR
-                #if here then this will allow me to continue to build the valueList so that I can eventually get the minimum value for the month (once the month changes)
-                if i == 0: priorMonth = currentMonth    #this only needs to be done during the first iteration
-                if humidityValueForCurrentCell == CELLERRORVALUE:
-                    yValues.append(0)
-                else:                
-                    valueList.append(humidityValueForCurrentCell)
-
+            if humidityValueForCurrentCell == CELLERRORVALUE:
+                yValues.append(0)
             else:
-                #if here then the month must have changed
-                #I can now get the minimum value for the month
-                minimumValueForMonth = min(valueList)
-                minimumValueForMonthList.append(minimumValueForMonth)
-                valueList = []  #I will empty the list and start the process of getting the minimum value for the next month by adding the first value for the newest month in the iteration
-                valueList.append(humidityValueForCurrentCell)
-
-            #I need to get the MONTHLY max
-            
-
-            #get MONTHLY average
-            #so for each month 
-                #get all of the data and average it out
-                #make sure to watch out for -9999 values (since this is indicates that the value is missing)
-
-            priorMonth = currentMonth   #this will help me know later when the month has changed during the iteration over the list
-
-
-
-
-        print(minimumValueForMonthList)
-
-
-
-
-
-            # drawLineGraph('Scatter Chart', time, yValues)
+                yValues.append(humidityValueForCurrentCell)
     elif graphSelection == 3:
         for i in range(0, 8760):
             globalHorizontalIrridiation = float(cellList[i][4])
+            if globalHorizontalIrridiation == CELLERRORVALUE:
+                yValues.append(0)
+            else:
+                yValues.append(globalHorizontalIrridiation)
+            
             yValues.append(globalHorizontalIrridiation)
-
-            drawLineGraph('Scatter Chart', time, yValues)
     else:
-        #error (todo - make sure to write the error trapping code above when getting the input from the user)
+        #my default case should never run because of the input error trapping that I have above, but I will keep this else statement here with code that will make the yValues default to all be 0's
         for i in range(0, 8760):
             yValues.append(0)
 
-            drawLineGraph('Scatter Chart', time, yValues)
+
+    composedDataList = []       #this will hold the returned list values from formatDataForMonthlyMinMaxAndAvg
+
+    # chartSelection = None
+    # inputMessage = 'What type of graph would you like? 1. scatter chart by hour 2. monthly min, max, and average 3. discrete values for each hour of the year'
+    if chartSelection == 1:
+        #for the scatter chart, no data manipulation is needed - the above format the yValues are in already works
+        #time is being used as the xAxis labels
+        drawLineGraph('Scatter Chart', time, yValues)
+
+    elif chartSelection == 2:
+        #todo
+        #graph monthly min, max, and average as a bar graph
+        # yValues = formatDataForMonthlyMinMaxAndAvg(yValues, monthList)
+        composedDataList = formatDataForMonthlyMinMaxAndAvg(yValues, monthList)
+        maximumValuesList = composedDataList[0]
+        minimumValuesList = composedDataList[1]
+        averageValuesList = composedDataList[2]
+        print('here...', maximumValuesList, minimumValuesList)
+    elif chartSelection == 3:
+        #todo
+        blahblah = 0
+    #because of the error trapping code, 1, 2, and 3 are the only values that chartSelection could be
+
 
 
 
