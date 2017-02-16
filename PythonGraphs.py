@@ -41,6 +41,8 @@ CELLERRORVALUE = -9999
 
 def drawBarGraph(figureText, avgMaxMinList, width=0.8, bottom=None, hold=None, data=None, alphaValue=0.5):
     '''
+    drawBarGraph will get the monthly min, max, and average and then graph the values using matplotlib's api
+    
                                   avg     max     min
     avgMaxMinList takes the form [[0-11], [0-11], [0-11]] where 0-11 represents the indexes that exists for the three lists inside the outer
 
@@ -53,7 +55,7 @@ def drawBarGraph(figureText, avgMaxMinList, width=0.8, bottom=None, hold=None, d
     area is the radius of the point to show how big the dot is drawn on the screen
     alphaValue is the transparency/opacity (alpha) of the paint
     '''
-    # time to get the monthly min, max, and average and then graph the values
+    
 
     months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     xCoordinates1 = []          #the xCoordinates lists will be used specifically for each different bar graph
@@ -87,6 +89,24 @@ def drawBarGraph(figureText, avgMaxMinList, width=0.8, bottom=None, hold=None, d
     mplBarGraph.show()
 
 
+def drawDiscreteValues(figureText, xLabels, yValues, area=3, color='green', alphaValue=0.5):
+    '''
+    drawLineGraph lets me simplify the api call using matplotlib's methods and adds in some optional arguments that have default values
+    area is the radius of the point to show how big the dot is drawn on the screen
+    alphaValue is the transparency/opacity (alpha) of the paint
+    '''
+
+    xLabelRange = range(len(yValues))   #this gives me a simple range to use as the x-axis values
+
+    #set the graph title
+    mplDiscreteLine.figure(figureText)
+    #draw the graph
+    mplDiscreteLine.scatter(xLabelRange, yValues, s=area, c=color, alpha=alphaValue)
+    #add the text xLabels that display the dates and hours
+    mplDiscreteLine.xticks(xLabelRange, xLabels, rotation='vertical')
+    mplDiscreteLine.show()
+
+
 def drawLineGraph(figureText, xValues, yValues, area=3, color='green', alphaValue=0.5):
     '''
     drawLineGraph lets me simplify the api call using matplotlib's methods and adds in some optional arguments that have default values
@@ -111,11 +131,6 @@ def formatDataForMonthlyMinMaxAndAvg(yValues, monthList):
     maximumValueForMonthList = []
     minimumValueForMonthList = []
 
-    #okay, so I messed up and acutally wrote the logic for the changing of the months in the wrong place, but im too tired to change it right now
-    #I will take it out of this current location (below this text) and implement it later on after I have gotten the data for the humidity out just
-    #like was done above for the temperature data
-
-    # print(monthList)
 
     for i in range(0, 8760):
         humidityValueForCurrentCell = yValues[i]
@@ -172,9 +187,7 @@ def formatDataForMonthlyMinMaxAndAvg(yValues, monthList):
 
 def getAverageOfList(rawListData):
     averageList = 0   #averageList will hold a scalar for the averaged data for the list
-
     averageList = sum(rawListData) / float(len(rawListData))
-
     return averageList
 
 def getChartSelectionFromUser():
@@ -260,15 +273,18 @@ def Program():
     linesInFileList = fileString.split('\n')
     sanitizedLinesList = linesInFileList[2:8762]    #list split is from 2 (because the first two rows of data are headers and are not needed) to 8762 because two things: 1. the 8762 element in this list is the last blank line in the file 2. the split method splits downward one value
     cellList = []   #this will be used later to help get the individual data cells
+    fullMonthList = []
+    monthList = []  #this will help me in the monthly min, max, and average section of the code
     #now I will build the list (I keep wanting to say array lol) to hold the hour values that will be used when drawing the graph
     time = []
-    monthList = []  #this will help me in the monthly min, max, and average section of the code
 
     for i in range(0, 8760):
         cellList.append(sanitizedLinesList[i].split(','))
         #this will grab the cell row, then with [1] grab the cell (which has the time value in it) then do a string slice [:2] which makes it where it just keeps the hour and discards the minutes
-        time.append(str(cellList[i][1])[:2])
-        monthList.append(cellList[i][0].split('/')[0])    #this grabs the month
+        formattedHourString = str(cellList[i][1])[:2]       #grabs the time and slices the string value using a string method
+        time.append(formattedHourString)                
+        fullMonthList.append(str(cellList[i][0]) + ' ' + formattedHourString)        #this grabs the full month string and adds the hour to use as the xLabels (this will only be used if the user selects graphSelection 3 to graph the discrete values on the graph)
+        monthList.append(cellList[i][0].split('/')[0])      #this grabs the month
 
     #cellList now contains for each element up to and including 8759 a list of the individual cells for that element index
 
@@ -287,18 +303,6 @@ def Program():
                 yValues.append(0)
             else:
                 yValues.append(temperatureValueForCurrentCell)
-
-        # #now that I have the data to graph I will use the matplotlib api to draw a scatter chart on the screen
-        # mplLineGraph.figure("Scatter Chart")
-
-        # area = 3  #this is the radius of the point to show how big the dot is drawn on the screen
-        # mplLineGraph.scatter(time, yValues, s=area, c='green', alpha=0.5)
-        # mplLineGraph.show()
-
-
-        # #time is being used as the xAxis labels
-        # drawLineGraph('Scatter Chart', time, yValues)
-
     elif graphSelection == 2:
         for i in range(0, 8760):
             humidityValueForCurrentCell = float(cellList[i][37])
@@ -327,7 +331,6 @@ def Program():
         #for the scatter chart, no data manipulation is needed - the above format the yValues are in already works
         #time is being used as the xAxis labels
         drawLineGraph('Scatter Chart', time, yValues)
-
     elif chartSelection == 2:
         #graph monthly min, max, and average as a bar graph
         # yValues = formatDataForMonthlyMinMaxAndAvg(yValues, monthList)
@@ -342,8 +345,9 @@ def Program():
         drawBarGraph('Monthly Min, Max, and Average', composedDataList)
 
     elif chartSelection == 3:
-        #todo
-        blahblah = 0
+        #fullMonthList is being used as the xAxis labels
+        drawDiscreteValues('Discrete Values For Each Hour of the Year', fullMonthList, yValues)
+
     #because of the error trapping code, 1, 2, and 3 are the only values that chartSelection could be so I don't have to consider any other possible values to branch on
 
 #a typical standard is to have a main function to start the program from
