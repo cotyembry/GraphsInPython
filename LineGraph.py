@@ -1,7 +1,7 @@
 '''
        Author:  John Coty Embry
          Date:  02-13-2017
-Last Modified:  02-14-2017
+Last Modified:  02-16-2017
 
 
 Due: 17 FEB 17
@@ -28,7 +28,7 @@ for each of the above, including chart type, colors, axes, etc.
 
 import os
 import matplotlib.pyplot as mplLineGraph
-import matplotlib.pyplot as mtlBarGraph
+import matplotlib.pyplot as mplBarGraph
 import matplotlib.pyplot as mplDiscreteLine
 
 #platform.system() == 'Windows' #this will help me to append a '/' or a '\' when making the absolute path for the file
@@ -39,25 +39,52 @@ from pathlib import Path
 #CELLERRORVALUE is used throughout the code to make sure not to append and use in a calculation this -9999 data value since this means to the TMY3 files that data did not exist for that cell so this should be either 1. smoothed over 2. replaced with a 0 (which is what I chose to do)
 CELLERRORVALUE = -9999
 
-def drawBarGraph(left, height, width=0.8, bottom=None, hold=None, data=None):
+def drawBarGraph(figureText, avgMaxMinList, width=0.8, bottom=None, hold=None, data=None, alphaValue=0.5):
     '''
-    matplotlib.pyplot.bar()
-    left:   sequence of scalars
-            the x coordinates of the left sides of the bars
-    height: sequence of scalars
-            the heights of the bars
+                                  avg     max     min
+    avgMaxMinList takes the form [[0-11], [0-11], [0-11]] where 0-11 represents the indexes that exists for the three lists inside the outer
+
+    matplotlib.pyplot.bar(left, height)
+        left:   sequence of scalars
+                the x coordinates of the left sides of the bars
+        height: sequence of scalars
+                the heights of the bars
+
     area is the radius of the point to show how big the dot is drawn on the screen
     alphaValue is the transparency/opacity (alpha) of the paint
     '''
-    # monthly min, max, and average
+    # time to get the monthly min, max, and average and then graph the values
+
+    months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    xCoordinates1 = []          #the xCoordinates lists will be used specifically for each different bar graph
+    xCoordinates2 = []
+    xCoordinates3 = []
+    xInc1 = 0                   #I start the Inc varialbes off on what their respective left x position should start off as
+    xInc2 = 0.33
+    xInc3 = 0.66
+    barWidth = 0.33             #this bar width value works in conjunction with the xInc variables and the barSection variable
+    barSection = barWidth * 3   #barSection will represent enough space for 3 bars
+
+    #this for loop is what creates the x-axis spacing list data structures to use later when drawing the graph to specify the x position's left value that matplotlib's api expects
+    for i in range(0, 12):        
+        xCoordinates1.append(xInc1)
+        xCoordinates2.append(xInc2)
+        xCoordinates3.append(xInc3)
+        xInc1 += barSection
+        xInc2 += barSection
+        xInc3 += barSection
 
 
+    mplBarGraph.figure(figureText)  #set the title text that was passed in when the function was called
 
 
+    #finally, draw the bar graphs
+    mplBarGraph.bar(xCoordinates1, avgMaxMinList[1], barWidth, align='center', alpha=alphaValue,color='purple', label='Min') #max bars
+    mplBarGraph.bar(xCoordinates2, avgMaxMinList[2], barWidth, align='center', alpha=alphaValue, color='green', label='Ave') #min bars
+    mplBarGraph.bar(xCoordinates3, avgMaxMinList[0], barWidth, align='center', alpha=alphaValue, color='red', label='Max')   #avg bars
 
-    mplLineGraph.figure(figureText)
-    mplLineGraph.scatter(xValues, yValues, s=area, c=color, alpha=alphaValue)
-    mplLineGraph.show()
+    #and lastly show the graph
+    mplBarGraph.show()
 
 
 def drawLineGraph(figureText, xValues, yValues, area=3, color='green', alphaValue=0.5):
@@ -80,12 +107,10 @@ def formatDataForMonthlyMinMaxAndAvg(yValues, monthList):
     currentMonth = ''
     priorMonth = ''
     valueList = []                  #valueList will help me get the min of the month
-    averageValuesList = []
+    averageValueForMonthList = []
     maximumValueForMonthList = []
     minimumValueForMonthList = []
 
-    #TODO: fix/restructure code
-    
     #okay, so I messed up and acutally wrote the logic for the changing of the months in the wrong place, but im too tired to change it right now
     #I will take it out of this current location (below this text) and implement it later on after I have gotten the data for the humidity out just
     #like was done above for the temperature data
@@ -120,8 +145,10 @@ def formatDataForMonthlyMinMaxAndAvg(yValues, monthList):
             if i == 8759:
                 #this is the last iteration in the loop
                 #I will finish up by getting the last calculation for the final month's data before the loop ends
+                averageValueForMonth = getAverageOfList(valueList)
                 maximumValueForMonth = max(valueList)
                 minimumValueForMonth = min(valueList)
+                averageValueForMonthList.append(averageValueForMonth)
                 maximumValueForMonthList.append(maximumValueForMonth)
                 minimumValueForMonthList.append(minimumValueForMonth)
                 valueList = []      #empty this value since it is no longer needed
@@ -129,30 +156,26 @@ def formatDataForMonthlyMinMaxAndAvg(yValues, monthList):
             
             #if here then the month must have changed
             #I can now get the minimum value for the month
+            averageValueForMonth = getAverageOfList(valueList)
             maximumValueForMonth = max(valueList)
             minimumValueForMonth = min(valueList)
+            averageValueForMonthList.append(averageValueForMonth)
             maximumValueForMonthList.append(maximumValueForMonth)
             minimumValueForMonthList.append(minimumValueForMonth)
             valueList = []  #I will empty the list and start the process of getting the minimum value for the next month by adding the first value for the newest month in the iteration
             valueList.append(humidityValueForCurrentCell)
 
-        #I need to get the MONTHLY max
-
-        #get MONTHLY average
-        #so for each month 
-            #get all of the data and average it out
-            #make sure to watch out for -9999 values (since this is indicates that the value is missing)
-
         priorMonth = currentMonth   #this will help me know later when the month has changed during the iteration over the list
 
-        #print(minimumValueForMonthList)
+    #now I will return my composed data to use later when graphing these values
+    return [averageValueForMonthList, maximumValueForMonthList, minimumValueForMonthList] 
 
-    # print(maximumValueForMonthList)
-    # print('\n')
-    # print(minimumValueForMonthList)
+def getAverageOfList(rawListData):
+    averageList = 0   #averageList will hold a scalar for the averaged data for the list
 
-    return [maximumValueForMonthList, minimumValueForMonthList, averageValuesList]
+    averageList = sum(rawListData) / float(len(rawListData))
 
+    return averageList
 
 def getChartSelectionFromUser():
     '''
@@ -290,8 +313,6 @@ def Program():
                 yValues.append(0)
             else:
                 yValues.append(globalHorizontalIrridiation)
-            
-            yValues.append(globalHorizontalIrridiation)
     else:
         #my default case should never run because of the input error trapping that I have above, but I will keep this else statement here with code that will make the yValues default to all be 0's
         for i in range(0, 8760):
@@ -308,167 +329,22 @@ def Program():
         drawLineGraph('Scatter Chart', time, yValues)
 
     elif chartSelection == 2:
-        #todo
         #graph monthly min, max, and average as a bar graph
         # yValues = formatDataForMonthlyMinMaxAndAvg(yValues, monthList)
         composedDataList = formatDataForMonthlyMinMaxAndAvg(yValues, monthList)
-        maximumValuesList = composedDataList[0]
-        minimumValuesList = composedDataList[1]
-        averageValuesList = composedDataList[2]
-        print('here...', maximumValuesList, minimumValuesList)
+        # The data structure/format of composedDataList is of the form shown below
+        #
+        # averageValuesList = composedDataList[0]
+        # maximumValuesList = composedDataList[1]
+        # minimumValuesList = composedDataList[2]
+
+        #now that I have the data to graph, its time to actually graph it
+        drawBarGraph('Monthly Min, Max, and Average', composedDataList)
+
     elif chartSelection == 3:
         #todo
         blahblah = 0
-    #because of the error trapping code, 1, 2, and 3 are the only values that chartSelection could be
-
-
-
-
-
-    '''
-
-
-
-    date = []
-    time = []
-    GHI = []
-    temperature = []
-    humidity = []
-
-    for h in range(0, 8760):
-
-        date.append(str(list3[h][0]))
-        time.append(str(list3[h][1]))
-
-    month = []
-    hour = []
-
-    for h in range(0, 8760):
-        month.append(int(str(date[h])[:2]))
-        hour.append(int(str(time[h])[:2]))
-
-    #SCATTER CHART
-    if chartoption == 1:
-        mplLineGraph.figure("Scatter Chart")
-        x = hour
-
-        if plotoption == 1:
-            y = temperature
-        elif plotoption ==2:
-            y = humidity
-        elif plotoption == 3:
-            y = GHI
-
-        area = 3  #point radius
-        mplLineGraph.scatter(x, y, s=area, c='green', alpha=0.5)
-        mplLineGraph.show()
-
-
-    #DISCRETE VALUES
-    if chartoption==2:
-        mtlBarGraph.figure("Discrete Values")
-        x = range(0,8760)
-
-        if plotoption == 1:
-            y = temperature
-        elif plotoption ==2:
-            y = humidity
-        elif plotoption == 3:
-            y = GHI
-
-        area = 6  #point radius
-        mtlBarGraph.scatter(x, y,  s = area,  c = 'red', alpha = 0.5)
-        mtlBarGraph.plot(x, y)
-        mtlBarGraph.show()
-
-
-    #BAR MIN/AVE/MAX
-    if chartoption == 3:
-
-        monthlymin = []
-        monthlymax = []
-        monthlyave = []
-        monthcount = 1
-        monthitems = 0
-
-        minvalue = 10**10
-        maxvalue = -10**10
-        sumvalue = 0
-
-        for h in range(0, 8760):
-
-            if plotoption == 1:
-                if temperature[h] < minvalue:
-                    minvalue = temperature[h]
-                if temperature[h] > maxvalue:
-                    maxvalue = temperature[h]
-                sumvalue += temperature[h]
-            elif plotoption == 2:
-                if humidity[h] < minvalue:
-                    minvalue = humidity[h]
-                if humidity[h] > maxvalue:
-                    maxvalue = humidity[h]
-                sumvalue += humidity[h]
-            elif plotoption == 3:
-                if GHI[h] < minvalue:
-                    minvalue = GHI[h]
-                if GHI[h] > maxvalue:
-                    maxvalue = GHI[h]
-                sumvalue += GHI[h]
-
-            monthitems += 1
-
-            if h == 8759:
-
-                monthlymin.append(minvalue)
-                monthlymax.append(maxvalue)
-                monthlyave.append(sumvalue / monthitems)
-                monthcount += 1
-                monthitems = 0
-
-                minvalue = 10**10
-                maxvalue = -10**10
-                sumvalue = 0
-
-            elif h < 8759:
-
-                if monthcount != month[h + 1]:
-                    monthlymin.append(minvalue)
-                    monthlymax.append(maxvalue)
-                    monthlyave.append(sumvalue / monthitems)
-                    monthcount += 1
-                    monthitems = 0
-
-                    minvalue = 10**10
-                    maxvalue = -10**10
-                    sumvalue = 0
-
-
-        mplDiscreteLine.figure("Min/Ave/Max Values")
-        n_groups = 12
-        index = np.arange(n_groups)
-        bar_width = 0.35
-        opacity = 1
-
-        for m in range(0, 12):
-
-            rects1 = mplDiscreteLine.bar(m, monthlymin[m], bar_width, alpha=opacity,color='blue', label='Min')
-            rects2 = mplDiscreteLine.bar(m + bar_width, monthlyave[m], bar_width, alpha=opacity, color='green', label='Ave')
-            rects3 = mplDiscreteLine.bar(m + bar_width + bar_width, monthlymax[m], bar_width, alpha=opacity, color='red', label='Max')
-
-        mplDiscreteLine.xlabel('Month')
-        if plotoption == 1:
-            mplDiscreteLine.ylabel('Temp')
-        elif plotoption == 2:
-            mplDiscreteLine.ylabel('Humidity')
-        elif plotoption == 3:
-            mplDiscreteLine.ylabel('GHI')
-
-        mplDiscreteLine.title('Monthly Min/Ave/Max')
-        mplDiscreteLine.xticks(index + bar_width  / 2, ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'))
-        mplDiscreteLine.show()
-
-    '''
+    #because of the error trapping code, 1, 2, and 3 are the only values that chartSelection could be so I don't have to consider any other possible values to branch on
 
 #a typical standard is to have a main function to start the program from
 def main():
